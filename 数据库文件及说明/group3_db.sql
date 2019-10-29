@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- 主机： 127.0.0.1:3306
--- 生成日期： 2019-10-29 06:04:59
+-- 生成日期： 2019-10-29 08:19:34
 -- 服务器版本： 5.7.26
 -- PHP 版本： 7.2.18
 
@@ -61,12 +61,12 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `default_plan` ()  begin
 	select course_code,course_name,course_pic,pl_time from plan;
 end$$
 
-DROP PROCEDURE IF EXISTS `show_course`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `show_course` (IN `course_name` VARCHAR(30))  NO SQL
+DROP PROCEDURE IF EXISTS `show_home_course`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `show_home_course` (IN `coursecode` VARCHAR(30))  NO SQL
 begin
-	set @sqlcmd = 'select course_name,course_tea,course_file,course_syllabus from plan where course_code = ?';   
+	set @sqlcmd = 'select course_name,course_tea,course_weektime,course_place from g3_course where course_code = ?';   
 	prepare stmt from @sqlcmd;  
-	set @a=course_code;
+	set @a=coursecode;
 	execute stmt using @a; 
 	deallocate prepare stmt;  
 end$$
@@ -78,6 +78,15 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `show_plan` (IN `course_name` VARCHA
 	set @a=course_name;
 	execute stmt using @a; 
 	deallocate prepare stmt;  
+end$$
+
+DROP PROCEDURE IF EXISTS `show_table`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `show_table` (IN `table_name` VARCHAR(20))  NO SQL
+begin
+set @sqlcmd = concat('select * from ', table_name);  
+prepare stmt from @sqlcmd;  
+execute stmt; 
+deallocate prepare stmt;  
 end$$
 
 --
@@ -92,6 +101,19 @@ CREATE DEFINER=`root`@`localhost` FUNCTION `is_number` (`str` VARCHAR(25)) RETUR
     ELSE 
         RETURN 0; 
     END IF; 
+END$$
+
+DROP FUNCTION IF EXISTS `is_user`$$
+CREATE DEFINER=`root`@`localhost` FUNCTION `is_user` (`name` VARCHAR(20), `passw` VARCHAR(20)) RETURNS INT(11) NO SQL
+BEGIN 
+	DECLARE c varchar(20) DEFAULT '';
+	select user_password from g3_user where g3_user.user_name=name into c;
+    
+    IF c=passw THEN
+    	RETURN 1;
+    ELSE
+    	RETURN 0;
+    END IF;
 END$$
 
 DELIMITER ;
@@ -187,6 +209,7 @@ CREATE TABLE IF NOT EXISTS `g3_course` (
   `course_st` date DEFAULT NULL,
   `course_ed` date DEFAULT NULL,
   `course_weektime` text,
+  `course_place` varchar(50) NOT NULL,
   PRIMARY KEY (`course_id`),
   UNIQUE KEY `course_code` (`course_code`)
 ) ENGINE=MyISAM AUTO_INCREMENT=4 DEFAULT CHARSET=utf8;
@@ -195,10 +218,10 @@ CREATE TABLE IF NOT EXISTS `g3_course` (
 -- 转存表中的数据 `g3_course`
 --
 
-INSERT INTO `g3_course` (`course_id`, `course_name`, `course_len`, `course_tea`, `course_code`, `course_pic`, `course_file`, `course_syllabus`, `course_st`, `course_ed`, `course_weektime`) VALUES
-(1, 'software_engineering', 64, 'Mr.W', '12398', './img/SE.jpg', './pdf/example.pdf', './pdf/example.md', '2019-10-01', '2019-10-30', 'Thursday, from 12 a.m to 2 p.m；Friday, from 12 a.m to 2 p.m; Sunday, from 12 a.m to 2 p.m'),
-(2, 'software_engineering_practice', 32, 'Mr.Z', '11234', './img/SEI.jpg', './pdf/example.pdf', './pdf/example.md', '2019-10-01', '2019-10-30', 'Tuesday, from 12 a.m to 2 p.m；Wendensday, from 12 a.m to 2 p.m; Saturday, from 12 a.m to 2 p.m'),
-(3, 'computer_science_english', 48, 'Mr.Q', '11', './img/CSE.jpg', './pdf/example.pdf', './pdf/example.md', '2019-10-01', '2019-10-30', 'Thursday, from 4 p.m to 7 p.m；Friday, from 4 p.m to 7 p.m; Sunday, from 4 a.m to 7 p.m');
+INSERT INTO `g3_course` (`course_id`, `course_name`, `course_len`, `course_tea`, `course_code`, `course_pic`, `course_file`, `course_syllabus`, `course_st`, `course_ed`, `course_weektime`, `course_place`) VALUES
+(1, 'software_engineering', 64, 'Mr.W', '12398', './img/SE.jpg', './pdf/example.pdf', './pdf/example.md', '2019-10-01', '2019-10-30', 'Thursday, from 12 a.m to 2 p.m；Friday, from 12 a.m to 2 p.m; Sunday, from 12 a.m to 2 p.m', 'place1'),
+(2, 'software_engineering_practice', 32, 'Mr.Z', '11234', './img/SEI.jpg', './pdf/example.pdf', './pdf/example.md', '2019-10-01', '2019-10-30', 'Tuesday, from 12 a.m to 2 p.m；Wendensday, from 12 a.m to 2 p.m; Saturday, from 12 a.m to 2 p.m', 'place2'),
+(3, 'computer_science_english', 48, 'Mr.Q', '11', './img/CSE.jpg', './pdf/example.pdf', './pdf/example.md', '2019-10-01', '2019-10-30', 'Thursday, from 4 p.m to 7 p.m；Friday, from 4 p.m to 7 p.m; Sunday, from 4 a.m to 7 p.m', 'place3');
 
 -- --------------------------------------------------------
 
