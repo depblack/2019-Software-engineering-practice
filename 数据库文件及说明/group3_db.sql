@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- 主机： 127.0.0.1:3306
--- 生成日期： 2019-10-29 08:19:34
+-- 生成日期： 2019-10-30 12:59:45
 -- 服务器版本： 5.7.26
 -- PHP 版本： 7.2.18
 
@@ -26,39 +26,91 @@ DELIMITER $$
 --
 -- 存储过程
 --
-DROP PROCEDURE IF EXISTS `add_daily`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `add_daily` (IN `d_id` INT(20), IN `user_name` VARCHAR(20), IN `d_date` DATE, IN `d_content` TEXT, OUT `message` VARCHAR(50))  begin
-   set @sqlcmd = 'select count(*) into @E from daily where d_id=?';  
+DROP PROCEDURE IF EXISTS `get_all_assid`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_all_assid` (IN `name` VARCHAR(20), IN `cod` VARCHAR(20))  NO SQL
+begin
+	set @sqlcmd = 'select a_id FROM g3_assignment where user_name=? and course_code=?' ;   
 	prepare stmt from @sqlcmd;  
-	set @a=d_id;
-	execute stmt using @a; 
-	deallocate prepare stmt; 
-	
-   set @sqlcmd = 'select is_number(?) into @N';  
-	prepare stmt from @sqlcmd;  
-	set @a=d_id;
-	execute stmt using @a; 
-	deallocate prepare stmt; 
-    
-   #if @E>0 or @N<1 then
-   if @E>0 then
-        set message="Illegal d_id in daily.";
-   else
-      set @sqlcmd = 'insert into daily values(?,?,?,?)';  
-		prepare stmt from @sqlcmd;  
-		set @a=d_id;
-		set @b=user_name;
-		set @c=d_date;
-        set @d=d_content;
-		execute stmt using @a,@b,@c,@d; 
-		deallocate prepare stmt; 
-      set message="Insert sucessed.";
-   end if;    
+	set @a=name;
+    set @b=cod;
+	execute stmt using @a,@b; 
+	deallocate prepare stmt;  
 end$$
 
-DROP PROCEDURE IF EXISTS `default_plan`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `default_plan` ()  begin
-	select course_code,course_name,course_pic,pl_time from plan;
+DROP PROCEDURE IF EXISTS `get_course_info`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_course_info` (IN `name` VARCHAR(20), IN `cod` VARCHAR(20))  NO SQL
+begin
+	set @sqlcmd = 'select cm_content,cm_time,cm_describe FROM g3_coumess where user_name=? and course_code=? and cm_type=2' ;   
+	prepare stmt from @sqlcmd;  
+	set @a=name;
+    set @b=cod;
+	execute stmt using @a,@b; 
+	deallocate prepare stmt;  
+end$$
+
+DROP PROCEDURE IF EXISTS `get_nograde_assid`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_nograde_assid` (IN `name` VARCHAR(20), IN `cod` VARCHAR(20))  NO SQL
+begin
+	set @sqlcmd = 'select a_id from g3_assignment where user_name=? and course_code=? and a_grade is null';   
+	prepare stmt from @sqlcmd;  
+	set @a=name;
+    set @b=cod;
+	execute stmt using @a,@b; 
+	deallocate prepare stmt;  
+end$$
+
+DROP PROCEDURE IF EXISTS `get_nosubmit_assid`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_nosubmit_assid` (IN `name` VARCHAR(20), IN `cod` VARCHAR(20))  NO SQL
+begin
+	set @sqlcmd = 'select a_id from g3_assignment where user_name=? and course_code=? and a_submit=0';   
+	prepare stmt from @sqlcmd;  
+	set @a=name;
+    set @b=cod;
+	execute stmt using @a,@b; 
+	deallocate prepare stmt;  
+end$$
+
+DROP PROCEDURE IF EXISTS `get_score_info`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_score_info` (IN `name` VARCHAR(20), IN `cod` VARCHAR(20))  NO SQL
+begin
+	set @sqlcmd = 'select cm_content,cm_time,cm_describe FROM g3_coumess where user_name=? and course_code=? and cm_type=1' ;   
+	prepare stmt from @sqlcmd;  
+	set @a=name;
+    set @b=cod;
+	execute stmt using @a,@b; 
+	deallocate prepare stmt;  
+end$$
+
+DROP PROCEDURE IF EXISTS `Insert_daily`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Insert_daily` (IN `user_name` VARCHAR(20), IN `d_date` DATETIME, IN `text` TEXT)  NO SQL
+begin
+	set @sqlcmd = 'insert into g3_daily values(null,?,?,?)';  
+		prepare stmt from @sqlcmd;  
+		set @a=user_name;
+		set @b=d_date;
+		set @c=text;
+		execute stmt using @a,@b,@c; 
+		deallocate prepare stmt; 
+end$$
+
+DROP PROCEDURE IF EXISTS `show_chosen_code`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `show_chosen_code` (IN `name` VARCHAR(20))  NO SQL
+begin
+	set @sqlcmd = 'select course_code from g3_chosen where user_name = ?';   
+	prepare stmt from @sqlcmd;  
+	set @a=name;
+	execute stmt using @a; 
+	deallocate prepare stmt;  
+end$$
+
+DROP PROCEDURE IF EXISTS `show_chosen_coursename`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `show_chosen_coursename` (IN `name` VARCHAR(20))  NO SQL
+begin
+	set @sqlcmd = 'select course_name from g3_course, g3_chosen where g3_chosen.user_name = ? and g3_course.course_code = g3_chosen.course_code ';   
+	prepare stmt from @sqlcmd;  
+	set @a=name;
+	execute stmt using @a; 
+	deallocate prepare stmt;  
 end$$
 
 DROP PROCEDURE IF EXISTS `show_home_course`$$
@@ -67,15 +119,6 @@ begin
 	set @sqlcmd = 'select course_name,course_tea,course_weektime,course_place from g3_course where course_code = ?';   
 	prepare stmt from @sqlcmd;  
 	set @a=coursecode;
-	execute stmt using @a; 
-	deallocate prepare stmt;  
-end$$
-
-DROP PROCEDURE IF EXISTS `show_plan`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `show_plan` (IN `course_name` VARCHAR(30))  begin
-	set @sqlcmd = 'select course_code,course_name,course_pic,pl_time from plan where course_name = ?';   
-	prepare stmt from @sqlcmd;  
-	set @a=course_name;
 	execute stmt using @a; 
 	deallocate prepare stmt;  
 end$$
@@ -89,9 +132,54 @@ execute stmt;
 deallocate prepare stmt;  
 end$$
 
+DROP PROCEDURE IF EXISTS `splitString`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `splitString` (IN `f_string` VARCHAR(1000), IN `f_delimiter` VARCHAR(5))  BEGIN
+ -- Get the separated string.
+ declare cnt int default 0;
+ declare i int default 0;
+ set cnt = func_get_splitStringTotal(f_string,f_delimiter);
+ 
+ drop table if exists `tmp_split`;
+ create temporary table `tmp_split`  (`val_` varchar(128) not null) DEFAULT CHARSET=utf8;
+ while i < cnt
+ do
+  set i = i + 1;
+  insert into `tmp_split`(`val_`) values (func_splitString(f_string,f_delimiter,i));
+ end while;
+ select * from `tmp_split`;
+END$$
+
 --
 -- 函数
 --
+DROP FUNCTION IF EXISTS `func_get_splitStringTotal`$$
+CREATE DEFINER=`root`@`localhost` FUNCTION `func_get_splitStringTotal` (`f_string` VARCHAR(1000), `f_delimiter` VARCHAR(5)) RETURNS INT(11) NO SQL
+BEGIN
+ 	return 1+(length(f_string)-length(replace(f_string,f_delimiter,'')));
+ 
+END$$
+
+DROP FUNCTION IF EXISTS `func_splitString`$$
+CREATE DEFINER=`root`@`localhost` FUNCTION `func_splitString` (`f_string` VARCHAR(1000), `f_delimiter` VARCHAR(5), `f_order` INT(5)) RETURNS VARCHAR(255) CHARSET utf8 NO SQL
+BEGIN
+ declare result varchar(255) default '';
+ set result = reverse(substring_index(reverse(substring_index(f_string,f_delimiter,f_order)),f_delimiter,1));
+ return result;
+END$$
+
+DROP FUNCTION IF EXISTS `get_pid`$$
+CREATE DEFINER=`root`@`localhost` FUNCTION `get_pid` (`name` VARCHAR(20)) RETURNS INT(11) NO SQL
+BEGIN 
+	DECLARE c varchar(20) DEFAULT '';
+	select user_pid from g3_user where g3_user.user_name=name into c;
+    
+    IF c<5&&c>0 THEN
+    	RETURN c;
+    ELSE
+    	RETURN -1;
+    END IF;
+END$$
+
 DROP FUNCTION IF EXISTS `is_number`$$
 CREATE DEFINER=`root`@`localhost` FUNCTION `is_number` (`str` VARCHAR(25)) RETURNS INT(11) BEGIN 
     DECLARE res INT DEFAULT 0; 
@@ -187,8 +275,19 @@ CREATE TABLE IF NOT EXISTS `g3_coumess` (
   `cm_content` varchar(100) NOT NULL,
   `cm_time` datetime NOT NULL,
   `user_name` varchar(20) NOT NULL,
+  `cm_describe` text NOT NULL,
+  `cm_type` int(5) NOT NULL,
   PRIMARY KEY (`cm_id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=4 DEFAULT CHARSET=utf8;
+
+--
+-- 转存表中的数据 `g3_coumess`
+--
+
+INSERT INTO `g3_coumess` (`cm_id`, `course_code`, `cm_content`, `cm_time`, `user_name`, `cm_describe`, `cm_type`) VALUES
+(1, '11234', 'you have got 99 of 100 in CSE-U1', '2019-10-17 00:00:00', 'wangsi', 'Score message', 1),
+(2, '11', 'you have got 89 of 100 in CSE-U2', '2019-10-09 00:00:00', 'zhangsan', 'Score message', 1),
+(3, '12398', './pdf/example.pdf', '2019-10-02 00:00:00', 'liqi', 'Course message', 2);
 
 -- --------------------------------------------------------
 
@@ -236,15 +335,14 @@ CREATE TABLE IF NOT EXISTS `g3_daily` (
   `d_date` datetime NOT NULL,
   `d_content` text NOT NULL,
   PRIMARY KEY (`d_id`)
-) ENGINE=MyISAM AUTO_INCREMENT=124 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=3 DEFAULT CHARSET=utf8;
 
 --
 -- 转存表中的数据 `g3_daily`
 --
 
 INSERT INTO `g3_daily` (`d_id`, `user_name`, `d_date`, `d_content`) VALUES
-(1, 'qwer', '2019-10-08 00:00:00', 'Meet and Greet with Mr.Bob, and go to school in 15 minutes'),
-(123, 'qwer', '2019-10-02 00:00:00', '12356');
+(1, 'wangsi', '2019-10-08 00:00:00', 'Go to school in 15 minutes');
 
 -- --------------------------------------------------------
 
@@ -414,6 +512,19 @@ INSERT INTO `g3_user` (`user_id`, `user_name`, `user_password`, `user_pid`) VALU
 (2, 'wangsi', '123654', 2),
 (3, 'liqi', '122333', 1),
 (4, 'fengji', '12345123', 3);
+
+-- --------------------------------------------------------
+
+--
+-- 表的结构 `tmp_spilt`
+--
+
+DROP TABLE IF EXISTS `tmp_spilt`;
+CREATE TABLE IF NOT EXISTS `tmp_spilt` (
+  `p_id` int(10) NOT NULL,
+  `_val` varchar(50) NOT NULL,
+  PRIMARY KEY (`p_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
